@@ -421,7 +421,7 @@ public class SoftApManager implements ActiveModeManager {
                     mFrameworkFacade.registerContentObserver(mContext,
                             Settings.Global.getUriFor(Settings.Global.SOFT_AP_TIMEOUT_ENABLED),
                             true, this);
-                    mTimeoutEnabled = getValue();
+                    mTimeoutEnabled = false;
                 }
 
                 public void unregister() {
@@ -628,9 +628,9 @@ public class SoftApManager implements ActiveModeManager {
                             break;
                         }
                         Log.i(TAG, "Timeout message received. Stopping soft AP.");
-                        updateApState(WifiManager.WIFI_AP_STATE_DISABLING,
+                        /*updateApState(WifiManager.WIFI_AP_STATE_DISABLING,
                                 WifiManager.WIFI_AP_STATE_ENABLED, 0);
-                        transitionTo(mIdleState);
+                        transitionTo(mIdleState);*/
                         break;
                     case CMD_INTERFACE_DESTROYED:
                         Log.d(TAG, "Interface was cleanly destroyed.");
