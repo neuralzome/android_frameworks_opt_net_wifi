@@ -1645,6 +1645,30 @@ public class WifiServiceImpl extends BaseWifiService {
         return new WifiConfiguration();
     }
 
+    private WifiConfiguration getWifiApConfig() {
+        enforceAccessPermission();
+        int uid = Binder.getCallingUid();
+        // only allow Settings UI to get the saved SoftApConfig
+/*         if (!mWifiPermissionsUtil.checkConfigOverridePermission(uid)) {
+            // random apps should not be allowed to read the user specified config
+            throw new SecurityException("App not allowed to read or update stored WiFi Ap config "
+                    + "(uid = " + uid + ")");
+        } */
+        mLog.info("getWifiApConfiguration uid=%").c(uid).flush();
+
+        // hand off work to the ClientModeImpl handler thread to sync work between calls
+        // and SoftApManager starting up softap
+        final Mutable<WifiConfiguration> config = new Mutable();
+        boolean success = mWifiInjector.getClientModeImplHandler().runWithScissors(() -> {
+            config.value = mWifiApConfigStore.getApConfiguration();
+        }, RUN_WITH_SCISSORS_TIMEOUT_MILLIS);
+        if (success) {
+            return config.value;
+        }
+        Log.e(TAG, "Failed to post runnable to fetch ap config");
+        return new WifiConfiguration();
+    }
+
     /**
      * see {@link WifiManager#setWifiApConfiguration(WifiConfiguration)}
      * @param wifiConfig WifiConfiguration details for soft access point
@@ -2847,6 +2871,26 @@ public class WifiServiceImpl extends BaseWifiService {
             if (sarManager != null) {
                 sarManager.dump(fd, pw, args);
             }
+            pw.println();
+            pw.println("**********");
+            pw.println("Hotspot Stats:");
+            WifiConfiguration config = getWifiApConfig();
+            boolean hotspot_on = mWifiApState == WifiManager.WIFI_AP_STATE_ENABLED;
+            pw.println("SSID : "+config.SSID);
+            pw.println("Password : "+config.preSharedKey);
+            String band = "2.4GHz";
+            if(config.apBand == WifiConfiguration.AP_BAND_5GHZ) {
+                band = "5GHz";
+            }
+            pw.println("Band : "+band);
+            if(!hotspot_on) {
+                pw.println("Active : False");
+                return;
+            }
+            pw.println("Active : True");
+
+            // print client addresses here
+            pw.println("Connected Clients : "+mSoftApNumClients);
             pw.println();
         }
     }
